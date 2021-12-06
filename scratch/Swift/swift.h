@@ -152,7 +152,7 @@ private:
   double m_cWndPrev;
   uint32_t m_maxRetries;
   double m_beta;
-  uint32_t m_maxDecrease;
+  double m_maxDecrease;
   double m_pacingDelay;
   double m_addIncrease;
   double m_baseDelay;
