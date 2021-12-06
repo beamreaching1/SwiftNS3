@@ -93,6 +93,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <string>
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -109,6 +110,11 @@ std::stringstream filePlotQueue2;
 std::ofstream rxS1R1Throughput;
 std::ofstream rxS2R2Throughput;
 std::ofstream rxS3R1Throughput;
+
+std::ofstream txS1R1RttS;
+std::ofstream txS2R2RttS;
+std::ofstream txS3R1RttS;
+
 std::ofstream fairnessIndex;
 std::ofstream t1QueueLength;
 std::ofstream t2QueueLength;
@@ -116,32 +122,52 @@ std::vector<uint64_t> rxS1R1Bytes;
 std::vector<uint64_t> rxS2R2Bytes;
 std::vector<uint64_t> rxS3R1Bytes;
 
-void PrintProgress (Time interval) {
-  std::cout << "Progress to " << std::fixed << std::setprecision (1) << Simulator::Now ().GetSeconds () << " seconds simulation time" << std::endl;
-  Simulator::Schedule (interval, &PrintProgress, interval);
-}
+std::vector<double> txS1R1RTT;
+std::vector<double> txS2R2RTT;
+std::vector<double> txS3R1RTT;
 
+//Byte Trace
 void TraceS1R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
   rxS1R1Bytes[index] += p->GetSize ();
 }
 
+//Byte Trace
 void TraceS2R2Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
   rxS2R2Bytes[index] += p->GetSize ();
 }
 
+//Byte Trace
 void TraceS3R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
   rxS3R1Bytes[index] += p->GetSize ();
+}
+
+//RTT Trace
+void TraceS1R1Rtt (std::size_t index, Time oldRtt, Time newRtt) {
+  txS1R1RTT[index] += newRtt.GetSeconds () * 1000;
+}
+
+//RTT Trace
+void TraceS2R2Rtt (std::size_t index, Time oldRtt, Time newRtt) {
+  txS2R2RTT[index] += newRtt.GetSeconds () * 1000;
+}
+
+//RTT Trace
+void TraceS3R1Rtt (std::size_t index, Time oldRtt, Time newRtt) {
+  txS3R1RTT[index] += newRtt.GetSeconds () * 1000;
 }
 
 void InitializeCounters (void) {
   for (std::size_t i = 0; i < 10; i++) {
     rxS1R1Bytes[i] = 0;
+    txS1R1RTT[i] = 0.0;
   }
   for (std::size_t i = 0; i < 20; i++) {
     rxS2R2Bytes[i] = 0;
+    txS2R2RTT[i] = 0.0;
   }
   for (std::size_t i = 0; i < 10; i++) {
     rxS3R1Bytes[i] = 0;
+    txS2R2RTT[i] = 0.0;
   }
 }
 
@@ -155,6 +181,24 @@ void PrintThroughput (Time measurementWindow) {
   for (std::size_t i = 0; i < 10; i++) {
     rxS3R1Throughput << Simulator::Now ().GetSeconds () << "s " << i << " " << (rxS3R1Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
   }
+}
+
+void PrintRTT(Time measurementWindow) {
+  double S1 = 0.0, S2 = 0.0, S3 = 0.0;
+  for (std::size_t i = 0; i < 10; i++) {
+     S1 += txS1R1RTT[i];
+  }
+  txS1R1RttS << measurementWindow.GetSeconds () << "s " << " " << S1/10.0 << std::endl;
+  
+  for (std::size_t i = 0; i < 20; i++) {
+     S2 += txS2R2RTT[i];
+  }
+  txS2R2RttS << Simulator::Now ().GetSeconds () << "s " << " " << S2/20.0 << std::endl;
+  
+  for (std::size_t i = 0; i < 10; i++) {
+     S3 += txS3R1RTT[i];
+  }
+  txS3R1RttS << Simulator::Now ().GetSeconds () << "s " << " " << S3/10.0 << std::endl;
 }
 
 // Jain's fairness index:  https://en.wikipedia.org/wiki/Fairness_measure
@@ -201,30 +245,24 @@ void PrintFairness (Time measurementWindow) {
                 << std::fixed << std::setprecision (2) << average << " Mbps; fairness: "
                 << std::fixed << std::setprecision (3) << fairness << std::endl;
   sum = 0;
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      sum += rxS1R1Bytes[i];
-    }
-  for (std::size_t i = 0; i < 20; i++)
-    {
-      sum += rxS2R2Bytes[i];
-    }
+  for (std::size_t i = 0; i < 10; i++) {
+    sum += rxS1R1Bytes[i];
+  }
+  for (std::size_t i = 0; i < 20; i++) {
+    sum += rxS2R2Bytes[i];
+  }
   fairnessIndex << "Aggregate user-level throughput for flows through T1: " << static_cast<double> (sum * 8) / 1e9 << " Gbps" << std::endl;
   sum = 0;
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      sum += rxS3R1Bytes[i];
-    }
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      sum += rxS1R1Bytes[i];
-    }
+  for (std::size_t i = 0; i < 10; i++) {
+    sum += rxS3R1Bytes[i];
+  }
+  for (std::size_t i = 0; i < 10; i++) {
+    sum += rxS1R1Bytes[i];
+  }
   fairnessIndex << "Aggregate user-level throughput for flows to R1: " << static_cast<double> (sum * 8) / 1e9 << " Gbps" << std::endl;
 }
 
-void
-CheckT1QueueSize (Ptr<QueueDisc> queue)
-{
+void CheckT1QueueSize (Ptr<QueueDisc> queue) {
   // 1500 byte packets
   uint32_t qSize = queue->GetNPackets ();
   Time backlog = Seconds (static_cast<double> (qSize * 1500 * 8) / 1e10); // 10 Gb/s
@@ -234,9 +272,7 @@ CheckT1QueueSize (Ptr<QueueDisc> queue)
   Simulator::Schedule (MilliSeconds (10), &CheckT1QueueSize, queue);
 }
 
-void
-CheckT2QueueSize (Ptr<QueueDisc> queue)
-{
+void CheckT2QueueSize (Ptr<QueueDisc> queue) {
   uint32_t qSize = queue->GetNPackets ();
   Time backlog = Seconds (static_cast<double> (qSize * 1500 * 8) / 1e9); // 1 Gb/s
   // report size in units of packets and ms
@@ -245,8 +281,42 @@ CheckT2QueueSize (Ptr<QueueDisc> queue)
   Simulator::Schedule (MilliSeconds (10), &CheckT2QueueSize, queue);
 }
 
-int main (int argc, char *argv[])
-{
+void ScheduleS1R1RttTraceConnection () {
+  std::string index = "";
+  for(int i = 3; i <= 12; i++){
+    index = std::to_string(i);
+    Config::ConnectWithoutContext ("/NodeList/" + index + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS1R1Sink, i));  
+  }
+  
+}
+
+void ScheduleS2R2RttTraceConnection () {
+  std::string index = "";
+  for(int i = 13; i <= 32; i++){
+    index = std::to_string(i);
+    Config::ConnectWithoutContext ("/NodeList/" + index + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS2R2Sink, i));  
+  }
+  
+}
+
+void ScheduleS3R1RttTraceConnection () {
+  std::string index = "";
+  for(int i = 43; i <= 62; i++){
+    index = std::to_string(i);
+    Config::ConnectWithoutContext ("/NodeList/" + index + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS3R1Sink, i));  
+  }
+  
+}
+
+void PrintProgress (Time interval) {
+  std::cout << "Progress to " << std::fixed << std::setprecision (1) << Simulator::Now ().GetSeconds () << " seconds simulation time" << std::endl;
+  Simulator::Schedule(interval, &PrintProgress, interval);
+  Simulator::Schedule(interval, &ScheduleS1R1RttTraceConnection);
+  Simulator::Schedule(interval, &ScheduleS2R2RttTraceConnection);
+  Simulator::Schedule(interval, &ScheduleS3R1RttTraceConnection);
+}
+
+int main (int argc, char *argv[]) {
   std::string outputFilePath = ".";
   std::string tcpTypeId = "Swift";
   Time flowStartupWindow = Seconds (1);
@@ -274,14 +344,18 @@ int main (int argc, char *argv[])
   rxS2R2Bytes.reserve (20);
   rxS3R1Bytes.reserve (10);
 
+  txS1R1RTT.reserve (10);
+  txS2R2RTT.reserve (20);
+  txS3R1RTT.reserve (10);
+
   NodeContainer S1, S2, S3, R2;
-  Ptr<Node> T1 = CreateObject<Node> ();
-  Ptr<Node> T2 = CreateObject<Node> ();
-  Ptr<Node> R1 = CreateObject<Node> ();
-  S1.Create (10);
-  S2.Create (20);
-  S3.Create (10);
-  R2.Create (20);
+  Ptr<Node> T1 = CreateObject<Node> ();//0
+  Ptr<Node> T2 = CreateObject<Node> ();//1
+  Ptr<Node> R1 = CreateObject<Node> ();//2
+  S1.Create (10);//3-12
+  S2.Create (20);//13-32
+  S3.Create (10);//33-42
+  R2.Create (20);//43-62
 
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1448));
   Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (2));
@@ -418,9 +492,9 @@ int main (int argc, char *argv[])
   for (std::size_t i = 0; i < 20; i++) {
       uint16_t port = 50000 + i;
       Address sinkLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
-      PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", sinkLocalAddress);
+      PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
       ApplicationContainer sinkApp = sinkHelper.Install (R2.Get (i));
-      Ptr<PacketSink> packetSink = sinkApp.Get (0)->GetObject<PacketSink> ();
+      Ptr<PacketSink> packetSink = sinkApp.Get(0)->GetObject<PacketSink> ();
       r2Sinks.push_back (packetSink);
       sinkApp.Start (startTime);
       sinkApp.Stop (stopTime);
@@ -480,16 +554,25 @@ int main (int argc, char *argv[])
     clientApps1.Stop (stopTime);
   }
 
-  rxS1R1Throughput.open ("./scratch/Swift-example-s1-r1-throughput.dat", std::ios::out);
+  txS1R1RttS.open ("./scratch/Swift-s1-r1-rtt.dat", std::ios::out);
+  txS1R1RttS << "Time(s) RTT(ms)" << std::endl;
+  
+  txS2R2RttS.open ("./scratch/Swift-s2-r2-rtt.dat", std::ios::out);
+  txS2R2RttS << "Time(s) RTT(ms)" << std::endl;
+  
+  txS3R1RttS.open ("./scratch/Swift-s3-r1-rtt.dat", std::ios::out);
+  txS3R1RttS << "Time(s) RTT(ms)" << std::endl;
+
+  rxS1R1Throughput.open ("./scratch/Swift-s1-r1-throughput.dat", std::ios::out);
   rxS1R1Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
-  rxS2R2Throughput.open ("./scratch/Swift-example-s2-r2-throughput.dat", std::ios::out);
+  rxS2R2Throughput.open ("./scratch/Swift-s2-r2-throughput.dat", std::ios::out);
   rxS2R2Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
-  rxS3R1Throughput.open ("./scratch/Swift-example-s3-r1-throughput.dat", std::ios::out);
+  rxS3R1Throughput.open ("./scratch/Swift-s3-r1-throughput.dat", std::ios::out);
   rxS3R1Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
-  fairnessIndex.open ("./scratch/Swift-example-fairness.dat", std::ios::out);
-  t1QueueLength.open ("./scratch/Swift-example-t1-length.dat", std::ios::out);
+  fairnessIndex.open ("./scratch/Swift-fairness.dat", std::ios::out);
+  t1QueueLength.open ("./scratch/Swift-t1-length.dat", std::ios::out);
   t1QueueLength << "#Time(s) qlen(pkts) qlen(us)" << std::endl;
-  t2QueueLength.open ("./scratch/Swift-example-t2-length.dat", std::ios::out);
+  t2QueueLength.open ("./scratch/Swift-t2-length.dat", std::ios::out);
   t2QueueLength << "#Time(s) qlen(pkts) qlen(us)" << std::endl;
   for (std::size_t i = 0; i < 10; i++) {
     s1r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS1R1Sink, i));
@@ -500,6 +583,20 @@ int main (int argc, char *argv[])
   for (std::size_t i = 0; i < 10; i++) {
     s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Sink, i));
   }
+
+  //RTT Tracers
+  for (std::size_t i = 0; i < 10; i++) {
+    s1r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS1R1Rtt, i));
+  }
+  for (std::size_t i = 0; i < 20; i++) {
+    r2Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS2R2Rtt, i));
+  }
+  for (std::size_t i = 0; i < 10; i++) {
+    s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Rtt, i));
+  }
+  
+  Simulator::Schedule(flowStartupWindow + convergenceTime + measurementWindow, &PrintRTT, measurementWindow);
+
   Simulator::Schedule (flowStartupWindow + convergenceTime, &InitializeCounters);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintThroughput, measurementWindow);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintFairness, measurementWindow);
@@ -513,6 +610,10 @@ int main (int argc, char *argv[])
   rxS1R1Throughput.close ();
   rxS2R2Throughput.close ();
   rxS3R1Throughput.close ();
+  txS1R1RttS.close();
+  txS2R2RttS.close();
+  txS3R1RttS.close();
+
   fairnessIndex.close ();
   t1QueueLength.close ();
   t2QueueLength.close ();
