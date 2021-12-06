@@ -35,8 +35,7 @@ namespace ns3 {
  * endpoint capabilities mentioned in the SWIFT SIGCOMM paper.
  */
 
-class Swift : public TcpLinuxReno
-{
+class Swift : public TcpLinuxReno {
 public:
   /**
    * \brief Get the type ID.
@@ -83,8 +82,8 @@ public:
   typedef void (* CongestionEstimateTracedCallback)(uint32_t bytesAcked, uint32_t bytesMarked, double alpha);
 
   // Documented in base class
-  virtual uint32_t GetSsThresh (Ptr<const TcpSocketState> tcb,
-                                uint32_t bytesInFlight);
+  /*virtual uint32_t GetSsThresh (Ptr<const TcpSocketState> tcb,
+                                uint32_t bytesInFlight);*/
   virtual Ptr<TcpCongestionOps> Fork ();
   virtual void PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
                           const Time &rtt);
@@ -146,14 +145,14 @@ private:
   bool m_initialized;                   //!< Whether SWIFT has been initialized
   
   bool m_canDecrease;
-  uint32_t m_maxCwnd;
-  uint32_t m_minCwnd;
+  double m_maxCwnd;
+  double m_minCwnd;
   uint32_t m_fSrange;
   uint32_t m_retransmitCount;
-  uint32_t m_cWndPrev;
+  double m_cWndPrev;
   uint32_t m_maxRetries;
   double m_beta;
-  double m_maxDecrease;
+  uint32_t m_maxDecrease;
   double m_pacingDelay;
   double m_addIncrease;
   double m_baseDelay;

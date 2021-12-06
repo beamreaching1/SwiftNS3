@@ -81,8 +81,8 @@ Swift::Swift ()
   m_baseDelay = 1;
   m_addIncrease = 10;
   m_retransmitCount = 0;
-  m_cWndPrev = 1;
-  m_targetDelay = 1;
+  m_cWndPrev = 1.0;
+  m_targetDelay = 1.0;
   m_maxDecrease = 10;
   m_maxRetries = 10;
   m_lastDecrease = Simulator::Now();
@@ -110,8 +110,8 @@ Swift::Swift (const Swift& sock)
   m_baseDelay = 1;
   m_addIncrease = 10;
   m_retransmitCount = 0;
-  m_cWndPrev = 1;
-  m_targetDelay = 1;
+  m_cWndPrev = 1.0;
+  m_targetDelay = 1.0;
   m_maxDecrease = 10;
   m_lastDecrease = Simulator::Now();
   m_alpha = m_fSrange / ((1/sqrt(m_minCwnd))-(1/sqrt(m_maxCwnd)));
@@ -141,13 +141,13 @@ void Swift::Init (Ptr<TcpSocketState> tcb) {
   m_initialized = true;
 }
 
-// Step 9, Section 3.3 of RFC 8257.  GetSsThresh() is called upon
+/*// Step 9, Section 3.3 of RFC 8257.  GetSsThresh() is called upon
 // entering the CWR state, and then later, when CWR is exited,
 // cwnd is set to ssthresh (this value).  bytesInFlight is ignored.
 uint32_t Swift::GetSsThresh (Ptr<const TcpSocketState> tcb, uint32_t bytesInFlight) {
   NS_LOG_FUNCTION (this << tcb << bytesInFlight);
   return static_cast<uint32_t> ((1 - m_alpha / 2.0) * tcb->m_cWnd);
-}
+}*/
 
 void Swift::UpdateTargetDelay(Ptr<TcpSocketState> tcb) {
   m_targetDelay = m_baseDelay + (m_hops * m_hopScale);
@@ -162,8 +162,8 @@ void Swift::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
 
 
   //If an ACK is recieved normally
-  UpdateTargetDelay(tcb);
-  if(tcb->m_lastRtt.Get().GetNanoSeconds() < m_targetDelay) {
+  Swift::UpdateTargetDelay(tcb);
+  if(tcb->m_lastRtt.Get().GetMilliSeconds() < m_targetDelay) {
     if(tcb->m_cWnd.Get() > 1) {
       //Does num_acked in the paper refer to the total acked?
       //Or does it mean the number acked this particular frame?
@@ -175,7 +175,7 @@ void Swift::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
   }
   else {
     if(m_canDecrease) {
-      tcb->m_cWnd = std::max(1 - (m_beta * (tcb->m_lastRtt.Get().GetNanoSeconds() - m_targetDelay)),
+      tcb->m_cWnd = std::max(1 - (m_beta * (tcb->m_lastRtt.Get().GetMilliSeconds() - m_targetDelay)),
       1 - m_maxDecrease) * tcb->m_cWnd;
     }
   }
@@ -210,8 +210,9 @@ void Swift::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
     m_lastDecrease = Simulator::Now();
   }
   m_cWndPrev = tcb->m_cWnd.Get();
-  
+
 }
+
 
 void Swift::PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked, const Time &rtt) {
   NS_LOG_FUNCTION (this << tcb << segmentsAcked << rtt);

@@ -116,78 +116,57 @@ std::vector<uint64_t> rxS1R1Bytes;
 std::vector<uint64_t> rxS2R2Bytes;
 std::vector<uint64_t> rxS3R1Bytes;
 
-void
-PrintProgress (Time interval)
-{
+void PrintProgress (Time interval) {
   std::cout << "Progress to " << std::fixed << std::setprecision (1) << Simulator::Now ().GetSeconds () << " seconds simulation time" << std::endl;
   Simulator::Schedule (interval, &PrintProgress, interval);
 }
 
-void
-TraceS1R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a)
-{
+void TraceS1R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
   rxS1R1Bytes[index] += p->GetSize ();
 }
 
-void
-TraceS2R2Sink (std::size_t index, Ptr<const Packet> p, const Address& a)
-{
+void TraceS2R2Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
   rxS2R2Bytes[index] += p->GetSize ();
 }
 
-void
-TraceS3R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a)
-{
+void TraceS3R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
   rxS3R1Bytes[index] += p->GetSize ();
 }
 
-void
-InitializeCounters (void)
-{
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      rxS1R1Bytes[i] = 0;
-    }
-  for (std::size_t i = 0; i < 20; i++)
-    {
-      rxS2R2Bytes[i] = 0;
-    }
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      rxS3R1Bytes[i] = 0;
-    }
+void InitializeCounters (void) {
+  for (std::size_t i = 0; i < 10; i++) {
+    rxS1R1Bytes[i] = 0;
+  }
+  for (std::size_t i = 0; i < 20; i++) {
+    rxS2R2Bytes[i] = 0;
+  }
+  for (std::size_t i = 0; i < 10; i++) {
+    rxS3R1Bytes[i] = 0;
+  }
 }
 
-void
-PrintThroughput (Time measurementWindow)
-{
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      rxS1R1Throughput << measurementWindow.GetSeconds () << "s " << i << " " << (rxS1R1Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
-    }
-  for (std::size_t i = 0; i < 20; i++)
-    {
-      rxS2R2Throughput << Simulator::Now ().GetSeconds () << "s " << i << " " << (rxS2R2Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
-    }
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      rxS3R1Throughput << Simulator::Now ().GetSeconds () << "s " << i << " " << (rxS3R1Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
-    }
+void PrintThroughput (Time measurementWindow) {
+  for (std::size_t i = 0; i < 10; i++) {
+    rxS1R1Throughput << measurementWindow.GetSeconds () << "s " << i << " " << (rxS1R1Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
+  }
+  for (std::size_t i = 0; i < 20; i++) {
+    rxS2R2Throughput << Simulator::Now ().GetSeconds () << "s " << i << " " << (rxS2R2Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
+  }
+  for (std::size_t i = 0; i < 10; i++) {
+    rxS3R1Throughput << Simulator::Now ().GetSeconds () << "s " << i << " " << (rxS3R1Bytes[i] * 8) / (measurementWindow.GetSeconds ()) / 1e6 << std::endl;
+  }
 }
 
 // Jain's fairness index:  https://en.wikipedia.org/wiki/Fairness_measure
-void
-PrintFairness (Time measurementWindow)
-{
+void PrintFairness (Time measurementWindow) {
   double average = 0;
   uint64_t sumSquares = 0;
   uint64_t sum = 0;
   double fairness = 0;
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      sum += rxS1R1Bytes[i];
-      sumSquares += (rxS1R1Bytes[i] * rxS1R1Bytes[i]);
-    }
+  for (std::size_t i = 0; i < 10; i++) {
+    sum += rxS1R1Bytes[i];
+    sumSquares += (rxS1R1Bytes[i] * rxS1R1Bytes[i]);
+  } 
   average = ((sum / 10) * 8 / measurementWindow.GetSeconds ()) / 1e6;
   fairness = static_cast<double> (sum * sum) / (10 * sumSquares);
   fairnessIndex << "Average throughput for S1-R1 flows: "
@@ -345,23 +324,19 @@ int main (int argc, char *argv[])
   NetDeviceContainer T1T2 = pointToPointT.Install (T1, T2);
   NetDeviceContainer R1T2 = pointToPointSR.Install (R1, T2);
 
-  for (std::size_t i = 0; i < 10; i++)
-    {
+  for (std::size_t i = 0; i < 10; i++) {
       Ptr<Node> n = S1.Get (i);
       S1T1.push_back (pointToPointSR.Install (n, T1));
     }
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       Ptr<Node> n = S2.Get (i);
       S2T1.push_back (pointToPointSR.Install (n, T1));
     }
-  for (std::size_t i = 0; i < 10; i++)
-    {
+  for (std::size_t i = 0; i < 10; i++) {
       Ptr<Node> n = S3.Get (i);
       S3T2.push_back (pointToPointSR.Install (n, T2));
     }
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       Ptr<Node> n = R2.Get (i);
       R2T2.push_back (pointToPointSR.Install (n, T2));
     }
@@ -388,20 +363,16 @@ int main (int argc, char *argv[])
                             "MinTh", DoubleValue (20),
                             "MaxTh", DoubleValue (60));
   QueueDiscContainer queueDiscs2 = tchRed1.Install (R1T2.Get (1));
-  for (std::size_t i = 0; i < 10; i++)
-    {
+  for (std::size_t i = 0; i < 10; i++) {
       tchRed1.Install (S1T1[i].Get (1));
     }
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       tchRed1.Install (S2T1[i].Get (1));
     }
-  for (std::size_t i = 0; i < 10; i++)
-    {
+  for (std::size_t i = 0; i < 10; i++) {
       tchRed1.Install (S3T2[i].Get (1));
     }
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       tchRed1.Install (R2T2[i].Get (1));
     }
 
@@ -419,26 +390,22 @@ int main (int argc, char *argv[])
   address.SetBase ("192.168.0.0", "255.255.255.0");
   Ipv4InterfaceContainer ipR1T2 = address.Assign (R1T2);
   address.SetBase ("10.1.1.0", "255.255.255.0");
-  for (std::size_t i = 0; i < 10; i++)
-    {
+  for (std::size_t i = 0; i < 10; i++) {
       ipS1T1.push_back (address.Assign (S1T1[i]));
       address.NewNetwork ();
     }
   address.SetBase ("10.2.1.0", "255.255.255.0");
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       ipS2T1.push_back (address.Assign (S2T1[i]));
       address.NewNetwork ();
     }
   address.SetBase ("10.3.1.0", "255.255.255.0");
-  for (std::size_t i = 0; i < 10; i++)
-    {
+  for (std::size_t i = 0; i < 10; i++) {
       ipS3T2.push_back (address.Assign (S3T2[i]));
       address.NewNetwork ();
     }
   address.SetBase ("10.4.1.0", "255.255.255.0");
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       ipR2T2.push_back (address.Assign (R2T2[i]));
       address.NewNetwork ();
     }
@@ -448,8 +415,7 @@ int main (int argc, char *argv[])
   // Each sender in S2 sends to a receiver in R2
   std::vector<Ptr<PacketSink> > r2Sinks;
   r2Sinks.reserve (20);
-  for (std::size_t i = 0; i < 20; i++)
-    {
+  for (std::size_t i = 0; i < 20; i++) {
       uint16_t port = 50000 + i;
       Address sinkLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
       PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", sinkLocalAddress);
@@ -478,46 +444,41 @@ int main (int argc, char *argv[])
   std::vector<Ptr<PacketSink> > s3r1Sinks;
   s1r1Sinks.reserve (10);
   s3r1Sinks.reserve (10);
-  for (std::size_t i = 0; i < 20; i++)
-    {
-      uint16_t port = 50000 + i;
-      Address sinkLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
-      PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", sinkLocalAddress);
-      ApplicationContainer sinkApp = sinkHelper.Install (R1);
-      Ptr<PacketSink> packetSink = sinkApp.Get (0)->GetObject<PacketSink> ();
-      if (i < 10)
-        {
-          s1r1Sinks.push_back (packetSink);
-        }
-      else
-        {
-          s3r1Sinks.push_back (packetSink);
-        }
-      sinkApp.Start (startTime);
-      sinkApp.Stop (stopTime);
-
-      OnOffHelper clientHelper1 ("ns3::TcpSocketFactory", Address ());
-      clientHelper1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
-      clientHelper1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
-      clientHelper1.SetAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
-      clientHelper1.SetAttribute ("PacketSize", UintegerValue (1000));
-
-      ApplicationContainer clientApps1;
-      AddressValue remoteAddress (InetSocketAddress (ipR1T2.GetAddress (0), port));
-      clientHelper1.SetAttribute ("Remote", remoteAddress);
-      if (i < 10)
-        {
-          clientApps1.Add (clientHelper1.Install (S1.Get (i)));
-          clientApps1.Start (i * flowStartupWindow / 10 + clientStartTime + MilliSeconds (i * 5));
-        }
-      else
-        {
-          clientApps1.Add (clientHelper1.Install (S3.Get (i - 10)));
-          clientApps1.Start ((i - 10) * flowStartupWindow / 10 + clientStartTime + MilliSeconds (i * 5));
-        }
-
-      clientApps1.Stop (stopTime);
+  for (std::size_t i = 0; i < 20; i++) {
+    uint16_t port = 50000 + i;
+    Address sinkLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
+    PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", sinkLocalAddress);
+    ApplicationContainer sinkApp = sinkHelper.Install (R1);
+    Ptr<PacketSink> packetSink = sinkApp.Get (0)->GetObject<PacketSink> ();
+    if (i < 10) {
+      s1r1Sinks.push_back (packetSink);
     }
+    else {
+      s3r1Sinks.push_back (packetSink);
+    }
+    sinkApp.Start (startTime);
+    sinkApp.Stop (stopTime);
+
+    OnOffHelper clientHelper1 ("ns3::TcpSocketFactory", Address ());
+    clientHelper1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+    clientHelper1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+    clientHelper1.SetAttribute ("DataRate", DataRateValue (DataRate ("1Gbps")));
+    clientHelper1.SetAttribute ("PacketSize", UintegerValue (1000));
+
+    ApplicationContainer clientApps1;
+    AddressValue remoteAddress (InetSocketAddress (ipR1T2.GetAddress (0), port));
+    clientHelper1.SetAttribute ("Remote", remoteAddress);
+    if (i < 10) {
+      clientApps1.Add (clientHelper1.Install (S1.Get (i)));
+      clientApps1.Start (i * flowStartupWindow / 10 + clientStartTime + MilliSeconds (i * 5));
+    }
+    else {
+      clientApps1.Add (clientHelper1.Install (S3.Get (i - 10)));
+      clientApps1.Start ((i - 10) * flowStartupWindow / 10 + clientStartTime + MilliSeconds (i * 5));
+    }
+
+    clientApps1.Stop (stopTime);
+  }
 
   rxS1R1Throughput.open ("./scratch/Swift-example-s1-r1-throughput.dat", std::ios::out);
   rxS1R1Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
@@ -530,18 +491,15 @@ int main (int argc, char *argv[])
   t1QueueLength << "#Time(s) qlen(pkts) qlen(us)" << std::endl;
   t2QueueLength.open ("./scratch/Swift-example-t2-length.dat", std::ios::out);
   t2QueueLength << "#Time(s) qlen(pkts) qlen(us)" << std::endl;
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      s1r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS1R1Sink, i));
-    }
-  for (std::size_t i = 0; i < 20; i++)
-    {
-      r2Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS2R2Sink, i));
-    }
-  for (std::size_t i = 0; i < 10; i++)
-    {
-      s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Sink, i));
-    }
+  for (std::size_t i = 0; i < 10; i++) {
+    s1r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS1R1Sink, i));
+  }
+  for (std::size_t i = 0; i < 20; i++) {
+    r2Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS2R2Sink, i));
+  }
+  for (std::size_t i = 0; i < 10; i++) {
+    s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Sink, i));
+  }
   Simulator::Schedule (flowStartupWindow + convergenceTime, &InitializeCounters);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintThroughput, measurementWindow);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintFairness, measurementWindow);
