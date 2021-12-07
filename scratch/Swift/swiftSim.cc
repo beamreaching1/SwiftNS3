@@ -16,11 +16,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Authors: Shravya K.S. <shravya.ks0@gmail.com>
- *          Apoorva Bhargava <apoorvabhargava13@gmail.com>
- *          Shikha Bakshi <shikhabakshi912@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *          Tom Henderson <tomh@tomh.org>
+ * 
+ * 
+ * 
+ * 
+ * 
  */
 
 // The network topology used in this example is based on Fig. 17 described in
@@ -281,39 +281,56 @@ void CheckT2QueueSize (Ptr<QueueDisc> queue) {
   Simulator::Schedule (MilliSeconds (10), &CheckT2QueueSize, queue);
 }
 
-void ScheduleS1R1RttTraceConnection () {
-  std::string index = "";
-  for(int i = 3; i <= 12; i++){
-    index = std::to_string(i);
-    Config::ConnectWithoutContext ("/NodeList/" + index + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS1R1Sink, i));  
+void ScheduleS1R1RttTraceConnection(ns3::NodeContainer container) {
+  NodeContainer::Iterator i;
+  ns3::Time progressInterval = MilliSeconds (100);
+  int index = 0;
+  int j = 0;
+  printf("Nodes: %d\n", ns3::NodeList::GetNNodes());
+  for (i = container.Begin (); i != container.End (); ++i, j++) {
+    index = (*i)->GetId();
+    if(index != 3){
+      continue;
+    }
+    printf("Index: %d\n", index);
+    Config::ConnectWithoutContext("/NodeList/" + std::to_string(index) + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS1R1Rtt, j));
   }
-  
+  Simulator::Schedule(progressInterval, &ScheduleS1R1RttTraceConnection, container);
 }
 
-void ScheduleS2R2RttTraceConnection () {
-  std::string index = "";
-  for(int i = 13; i <= 32; i++){
-    index = std::to_string(i);
-    Config::ConnectWithoutContext ("/NodeList/" + index + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS2R2Sink, i));  
+void ScheduleS2R2RttTraceConnection(ns3::NodeContainer container) {
+  NodeContainer::Iterator i;
+  ns3::Time progressInterval = MilliSeconds (100);
+  int index = 0;
+  int j = 0;
+  for (i = container.Begin (); i != container.End (); ++i, j++) {
+    if(index != 13){
+      continue;
+    }
+    index = (*i)->GetId();
+    Config::ConnectWithoutContext("/NodeList/" + std::to_string(index) + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS2R2Rtt, j));  
   }
-  
+  Simulator::Schedule(progressInterval, &ScheduleS2R2RttTraceConnection, container);
 }
 
-void ScheduleS3R1RttTraceConnection () {
-  std::string index = "";
-  for(int i = 43; i <= 62; i++){
-    index = std::to_string(i);
-    Config::ConnectWithoutContext ("/NodeList/" + index + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS3R1Sink, i));  
+void ScheduleS3R1RttTraceConnection(ns3::NodeContainer container) {
+  NodeContainer::Iterator i;
+  ns3::Time progressInterval = MilliSeconds (100);
+  int index = 0;
+  int j = 0;
+  for (i = container.Begin (); i != container.End (); ++i, j++) {
+    if(index != 43){
+      continue;
+    }
+    index = (*i)->GetId();
+    Config::ConnectWithoutContext("/NodeList/" + std::to_string(index) + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS3R1Rtt, j));  
   }
-  
+  Simulator::Schedule(progressInterval, &ScheduleS3R1RttTraceConnection, container);
 }
 
 void PrintProgress (Time interval) {
   std::cout << "Progress to " << std::fixed << std::setprecision (1) << Simulator::Now ().GetSeconds () << " seconds simulation time" << std::endl;
   Simulator::Schedule(interval, &PrintProgress, interval);
-  Simulator::Schedule(interval, &ScheduleS1R1RttTraceConnection);
-  Simulator::Schedule(interval, &ScheduleS2R2RttTraceConnection);
-  Simulator::Schedule(interval, &ScheduleS3R1RttTraceConnection);
 }
 
 int main (int argc, char *argv[]) {
@@ -323,7 +340,7 @@ int main (int argc, char *argv[]) {
   Time convergenceTime = Seconds (3);
   Time measurementWindow = Seconds (1);
   bool enableSwitchEcn = true;
-  Time progressInterval = MilliSeconds (100);
+  ns3::Time progressInterval = MilliSeconds (100);
 
   CommandLine cmd (__FILE__);
   cmd.AddValue ("tcpTypeId", "ns-3 TCP TypeId", tcpTypeId);
@@ -349,13 +366,13 @@ int main (int argc, char *argv[]) {
   txS3R1RTT.reserve (10);
 
   NodeContainer S1, S2, S3, R2;
-  Ptr<Node> T1 = CreateObject<Node> ();//0
-  Ptr<Node> T2 = CreateObject<Node> ();//1
-  Ptr<Node> R1 = CreateObject<Node> ();//2
-  S1.Create (10);//3-12
-  S2.Create (20);//13-32
-  S3.Create (10);//33-42
-  R2.Create (20);//43-62
+  Ptr<Node> T1 = CreateObject<Node> ();
+  Ptr<Node> T2 = CreateObject<Node> ();
+  Ptr<Node> R1 = CreateObject<Node> ();
+  S1.Create (10);
+  S2.Create (20);
+  S3.Create (10);
+  R2.Create (20);
 
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1448));
   Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (2));
@@ -583,24 +600,18 @@ int main (int argc, char *argv[]) {
   for (std::size_t i = 0; i < 10; i++) {
     s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Sink, i));
   }
-
-  //RTT Tracers
-  for (std::size_t i = 0; i < 10; i++) {
-    s1r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS1R1Rtt, i));
-  }
-  for (std::size_t i = 0; i < 20; i++) {
-    r2Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS2R2Rtt, i));
-  }
-  for (std::size_t i = 0; i < 10; i++) {
-    s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Rtt, i));
-  }
   
   Simulator::Schedule(flowStartupWindow + convergenceTime + measurementWindow, &PrintRTT, measurementWindow);
-
   Simulator::Schedule (flowStartupWindow + convergenceTime, &InitializeCounters);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintThroughput, measurementWindow);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintFairness, measurementWindow);
+  
   Simulator::Schedule (progressInterval, &PrintProgress, progressInterval);
+
+  Simulator::Schedule(progressInterval, &ScheduleS1R1RttTraceConnection, S1);
+  Simulator::Schedule(progressInterval, &ScheduleS2R2RttTraceConnection, S2);
+  Simulator::Schedule(progressInterval, &ScheduleS3R1RttTraceConnection, S3);
+
   Simulator::Schedule (flowStartupWindow + convergenceTime, &CheckT1QueueSize, queueDiscs1.Get (0));
   Simulator::Schedule (flowStartupWindow + convergenceTime, &CheckT2QueueSize, queueDiscs2.Get (0));
   Simulator::Stop (stopTime + TimeStep (1));
