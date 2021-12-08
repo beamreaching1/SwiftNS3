@@ -122,9 +122,14 @@ std::vector<uint64_t> rxS1R1Bytes;
 std::vector<uint64_t> rxS2R2Bytes;
 std::vector<uint64_t> rxS3R1Bytes;
 
-std::vector<double> txS1R1RTT;
+static bool firstRttS1 = true;
+static bool firstRttS2 = true;
+static bool firstRttS3 = true;
+
+
+/*std::vector<double> txS1R1RTT;
 std::vector<double> txS2R2RTT;
-std::vector<double> txS3R1RTT;
+std::vector<double> txS3R1RTT;*/
 
 //Byte Trace
 void TraceS1R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
@@ -142,32 +147,44 @@ void TraceS3R1Sink (std::size_t index, Ptr<const Packet> p, const Address& a) {
 }
 
 //RTT Trace
-void TraceS1R1Rtt (std::size_t index, Time oldRtt, Time newRtt) {
-  txS1R1RTT[index] += newRtt.GetSeconds () * 1000;
+void TraceS1R1Rtt(std::size_t index, Time oldRtt, Time newRtt) {
+  if (firstRttS1) {
+    txS1R1RttS << "0.0 " << oldRtt.GetSeconds () << std::endl;
+    firstRttS1 = false;
+  }
+  txS1R1RttS << Simulator::Now ().GetSeconds () << " " << newRtt.GetSeconds() * 1000 << " ms" << std::endl;
 }
 
 //RTT Trace
-void TraceS2R2Rtt (std::size_t index, Time oldRtt, Time newRtt) {
-  txS2R2RTT[index] += newRtt.GetSeconds () * 1000;
+void TraceS2R2Rtt(std::size_t index, Time oldRtt, Time newRtt) {
+  if (firstRttS2) {
+    txS2R2RttS << "0.0 " << oldRtt.GetSeconds () << std::endl;
+    firstRttS2 = false;
+  }
+  txS2R2RttS << Simulator::Now ().GetSeconds () << " " << newRtt.GetSeconds() * 1000 << " ms" << std::endl;
 }
 
 //RTT Trace
-void TraceS3R1Rtt (std::size_t index, Time oldRtt, Time newRtt) {
-  txS3R1RTT[index] += newRtt.GetSeconds () * 1000;
+void TraceS3R1Rtt(std::size_t index, Time oldRtt, Time newRtt) {
+  if (firstRttS3) {
+    txS3R1RttS << "0.0 " << oldRtt.GetSeconds () << std::endl;
+    firstRttS3 = false;
+  }
+  txS3R1RttS << Simulator::Now ().GetSeconds () << " " << newRtt.GetSeconds() * 1000 << " ms" << std::endl;
 }
 
 void InitializeCounters (void) {
   for (std::size_t i = 0; i < 10; i++) {
     rxS1R1Bytes[i] = 0;
-    txS1R1RTT[i] = 0.0;
+    //txS1R1RTT[i] = 0.0;
   }
   for (std::size_t i = 0; i < 20; i++) {
     rxS2R2Bytes[i] = 0;
-    txS2R2RTT[i] = 0.0;
+    //txS2R2RTT[i] = 0.0;
   }
   for (std::size_t i = 0; i < 10; i++) {
     rxS3R1Bytes[i] = 0;
-    txS2R2RTT[i] = 0.0;
+    //txS2R2RTT[i] = 0.0;
   }
 }
 
@@ -183,7 +200,7 @@ void PrintThroughput (Time measurementWindow) {
   }
 }
 
-void PrintRTT(Time measurementWindow) {
+/*void PrintRTT(Time measurementWindow) {
   double S1 = 0.0, S2 = 0.0, S3 = 0.0;
   for (std::size_t i = 0; i < 10; i++) {
      S1 += txS1R1RTT[i];
@@ -199,7 +216,7 @@ void PrintRTT(Time measurementWindow) {
      S3 += txS3R1RTT[i];
   }
   txS3R1RttS << Simulator::Now ().GetSeconds () << "s " << " " << S3/10.0 << std::endl;
-}
+}*/
 
 // Jain's fairness index:  https://en.wikipedia.org/wiki/Fairness_measure
 void PrintFairness (Time measurementWindow) {
@@ -281,9 +298,9 @@ void CheckT2QueueSize (Ptr<QueueDisc> queue) {
   Simulator::Schedule (MilliSeconds (10), &CheckT2QueueSize, queue);
 }
 
+//RTT code
 void ScheduleS1R1RttTraceConnection(ns3::NodeContainer container) {
   NodeContainer::Iterator i;
-  ns3::Time progressInterval = MilliSeconds (100);
   int index = 0;
   int j = 0;
   printf("Nodes: %d\n", ns3::NodeList::GetNNodes());
@@ -295,12 +312,12 @@ void ScheduleS1R1RttTraceConnection(ns3::NodeContainer container) {
     printf("Index: %d\n", index);
     Config::ConnectWithoutContext("/NodeList/" + std::to_string(index) + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS1R1Rtt, j));
   }
-  Simulator::Schedule(progressInterval, &ScheduleS1R1RttTraceConnection, container);
+  Simulator::Schedule(Seconds(1), &ScheduleS1R1RttTraceConnection, container);
 }
 
+//RTT code
 void ScheduleS2R2RttTraceConnection(ns3::NodeContainer container) {
   NodeContainer::Iterator i;
-  ns3::Time progressInterval = MilliSeconds (100);
   int index = 0;
   int j = 0;
   for (i = container.Begin (); i != container.End (); ++i, j++) {
@@ -310,12 +327,12 @@ void ScheduleS2R2RttTraceConnection(ns3::NodeContainer container) {
     index = (*i)->GetId();
     Config::ConnectWithoutContext("/NodeList/" + std::to_string(index) + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS2R2Rtt, j));  
   }
-  Simulator::Schedule(progressInterval, &ScheduleS2R2RttTraceConnection, container);
+  Simulator::Schedule(Seconds(1), &ScheduleS2R2RttTraceConnection, container);
 }
 
+//RTT code
 void ScheduleS3R1RttTraceConnection(ns3::NodeContainer container) {
   NodeContainer::Iterator i;
-  ns3::Time progressInterval = MilliSeconds (100);
   int index = 0;
   int j = 0;
   for (i = container.Begin (); i != container.End (); ++i, j++) {
@@ -325,7 +342,7 @@ void ScheduleS3R1RttTraceConnection(ns3::NodeContainer container) {
     index = (*i)->GetId();
     Config::ConnectWithoutContext("/NodeList/" + std::to_string(index) + "/$ns3::TcpL4Protocol/SocketList/0/RTT", MakeBoundCallback (&TraceS3R1Rtt, j));  
   }
-  Simulator::Schedule(progressInterval, &ScheduleS3R1RttTraceConnection, container);
+  Simulator::Schedule(Seconds(1), &ScheduleS3R1RttTraceConnection, container);
 }
 
 void PrintProgress (Time interval) {
@@ -361,9 +378,9 @@ int main (int argc, char *argv[]) {
   rxS2R2Bytes.reserve (20);
   rxS3R1Bytes.reserve (10);
 
-  txS1R1RTT.reserve (10);
+  /*txS1R1RTT.reserve (10);
   txS2R2RTT.reserve (20);
-  txS3R1RTT.reserve (10);
+  txS3R1RTT.reserve (10);*/
 
   NodeContainer S1, S2, S3, R2;
   Ptr<Node> T1 = CreateObject<Node> ();
@@ -601,16 +618,16 @@ int main (int argc, char *argv[]) {
     s3r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS3R1Sink, i));
   }
   
-  Simulator::Schedule(flowStartupWindow + convergenceTime + measurementWindow, &PrintRTT, measurementWindow);
+  //Simulator::Schedule(flowStartupWindow + convergenceTime + measurementWindow, &PrintRTT, measurementWindow);
   Simulator::Schedule (flowStartupWindow + convergenceTime, &InitializeCounters);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintThroughput, measurementWindow);
   Simulator::Schedule (flowStartupWindow + convergenceTime + measurementWindow, &PrintFairness, measurementWindow);
   
   Simulator::Schedule (progressInterval, &PrintProgress, progressInterval);
 
-  Simulator::Schedule(progressInterval, &ScheduleS1R1RttTraceConnection, S1);
-  Simulator::Schedule(progressInterval, &ScheduleS2R2RttTraceConnection, S2);
-  Simulator::Schedule(progressInterval, &ScheduleS3R1RttTraceConnection, S3);
+  Simulator::Schedule(flowStartupWindow, &ScheduleS1R1RttTraceConnection, S1);
+  Simulator::Schedule(flowStartupWindow, &ScheduleS2R2RttTraceConnection, S2);
+  Simulator::Schedule(flowStartupWindow, &ScheduleS3R1RttTraceConnection, S3);
 
   Simulator::Schedule (flowStartupWindow + convergenceTime, &CheckT1QueueSize, queueDiscs1.Get (0));
   Simulator::Schedule (flowStartupWindow + convergenceTime, &CheckT2QueueSize, queueDiscs2.Get (0));
