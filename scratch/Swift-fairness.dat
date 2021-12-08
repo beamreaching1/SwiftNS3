@@ -1,0 +1,5 @@
+Average throughput for S1-R1 flows: 36.66 Mbps; fairness: 0.719
+Average throughput for S2-R2 flows: 463.93 Mbps; fairness: 1.000
+Average throughput for S3-R1 flows: 59.74 Mbps; fairness: 0.870
+Aggregate user-level throughput for flows through T1: 9.645 Gbps
+Aggregate user-level throughput for flows to R1: 0.964 Gbps
