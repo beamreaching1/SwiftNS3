@@ -378,17 +378,14 @@ int main (int argc, char *argv[]) {
   rxS2R2Bytes.reserve (20);
   rxS3R1Bytes.reserve (10);
 
-  /*txS1R1RTT.reserve (10);
-  txS2R2RTT.reserve (20);
-  txS3R1RTT.reserve (10);*/
-
-  NodeContainer S1, S2, S3, R2;
+  NodeContainer S1, S2, S3, S4, R2;
   Ptr<Node> T1 = CreateObject<Node> ();
   Ptr<Node> T2 = CreateObject<Node> ();
   Ptr<Node> R1 = CreateObject<Node> ();
   S1.Create (10);
   S2.Create (20);
   S3.Create (10);
+  S4.Create (50);
   R2.Create (20);
 
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1448));
@@ -427,27 +424,33 @@ int main (int argc, char *argv[]) {
   S2T1.reserve (20);
   std::vector<NetDeviceContainer> S3T2;
   S3T2.reserve (10);
+  std::vector<NetDeviceContainer> S4T2;
+  S4T2.reserve (50);
   std::vector<NetDeviceContainer> R2T2;
   R2T2.reserve (20);
   NetDeviceContainer T1T2 = pointToPointT.Install (T1, T2);
   NetDeviceContainer R1T2 = pointToPointSR.Install (R1, T2);
 
   for (std::size_t i = 0; i < 10; i++) {
-      Ptr<Node> n = S1.Get (i);
-      S1T1.push_back (pointToPointSR.Install (n, T1));
-    }
+    Ptr<Node> n = S1.Get (i);
+    S1T1.push_back (pointToPointSR.Install (n, T1));
+  }
   for (std::size_t i = 0; i < 20; i++) {
-      Ptr<Node> n = S2.Get (i);
-      S2T1.push_back (pointToPointSR.Install (n, T1));
-    }
+    Ptr<Node> n = S2.Get (i);
+    S2T1.push_back (pointToPointSR.Install (n, T1));
+  }
   for (std::size_t i = 0; i < 10; i++) {
-      Ptr<Node> n = S3.Get (i);
-      S3T2.push_back (pointToPointSR.Install (n, T2));
-    }
+    Ptr<Node> n = S3.Get (i);
+    S3T2.push_back (pointToPointSR.Install (n, T2));
+  }
+  for (std::size_t i = 0; i < 50; i++) {
+    Ptr<Node> n = S4.Get (i);
+    S4T2.push_back (pointToPointSR.Install (n, T2));
+  }
   for (std::size_t i = 0; i < 20; i++) {
-      Ptr<Node> n = R2.Get (i);
-      R2T2.push_back (pointToPointSR.Install (n, T2));
-    }
+    Ptr<Node> n = R2.Get (i);
+    R2T2.push_back (pointToPointSR.Install (n, T2));
+  }
 
   InternetStackHelper stack;
   stack.InstallAll ();
@@ -472,17 +475,20 @@ int main (int argc, char *argv[]) {
                             "MaxTh", DoubleValue (60));
   QueueDiscContainer queueDiscs2 = tchRed1.Install (R1T2.Get (1));
   for (std::size_t i = 0; i < 10; i++) {
-      tchRed1.Install (S1T1[i].Get (1));
-    }
+    tchRed1.Install (S1T1[i].Get (1));
+  }
   for (std::size_t i = 0; i < 20; i++) {
-      tchRed1.Install (S2T1[i].Get (1));
-    }
+    tchRed1.Install (S2T1[i].Get (1));
+  }
   for (std::size_t i = 0; i < 10; i++) {
-      tchRed1.Install (S3T2[i].Get (1));
-    }
+    tchRed1.Install (S3T2[i].Get (1));
+  }
+  for (std::size_t i = 0; i < 50; i++) {
+    tchRed1.Install (S4T2[i].Get (1));
+  }
   for (std::size_t i = 0; i < 20; i++) {
-      tchRed1.Install (R2T2[i].Get (1));
-    }
+    tchRed1.Install (R2T2[i].Get (1));
+  }
 
   Ipv4AddressHelper address;
   std::vector<Ipv4InterfaceContainer> ipS1T1;
@@ -491,6 +497,8 @@ int main (int argc, char *argv[]) {
   ipS2T1.reserve (20);
   std::vector<Ipv4InterfaceContainer> ipS3T2;
   ipS3T2.reserve (10);
+  std::vector<Ipv4InterfaceContainer> ipS4T2;
+  ipS3T2.reserve (50);
   std::vector<Ipv4InterfaceContainer> ipR2T2;
   ipR2T2.reserve (20);
   address.SetBase ("172.16.1.0", "255.255.255.0");
@@ -499,24 +507,30 @@ int main (int argc, char *argv[]) {
   Ipv4InterfaceContainer ipR1T2 = address.Assign (R1T2);
   address.SetBase ("10.1.1.0", "255.255.255.0");
   for (std::size_t i = 0; i < 10; i++) {
-      ipS1T1.push_back (address.Assign (S1T1[i]));
-      address.NewNetwork ();
-    }
+    ipS1T1.push_back (address.Assign (S1T1[i]));
+    address.NewNetwork ();
+  }
   address.SetBase ("10.2.1.0", "255.255.255.0");
   for (std::size_t i = 0; i < 20; i++) {
-      ipS2T1.push_back (address.Assign (S2T1[i]));
-      address.NewNetwork ();
-    }
+    ipS2T1.push_back (address.Assign (S2T1[i]));
+    address.NewNetwork ();
+  }
   address.SetBase ("10.3.1.0", "255.255.255.0");
   for (std::size_t i = 0; i < 10; i++) {
-      ipS3T2.push_back (address.Assign (S3T2[i]));
-      address.NewNetwork ();
-    }
+    ipS3T2.push_back (address.Assign (S3T2[i]));
+    address.NewNetwork ();
+  }
   address.SetBase ("10.4.1.0", "255.255.255.0");
   for (std::size_t i = 0; i < 20; i++) {
-      ipR2T2.push_back (address.Assign (R2T2[i]));
-      address.NewNetwork ();
-    }
+    ipR2T2.push_back (address.Assign (R2T2[i]));
+    address.NewNetwork ();
+  }
+  address.SetBase ("10.5.1.0", "255.255.255.0");
+  for (std::size_t i = 0; i < 10; i++) {
+    ipS4T2.push_back (address.Assign (S4T2[i]));
+    address.NewNetwork ();
+  }
+
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
@@ -550,9 +564,11 @@ int main (int argc, char *argv[]) {
   // Each sender in S1 and S3 sends to R1
   std::vector<Ptr<PacketSink> > s1r1Sinks;
   std::vector<Ptr<PacketSink> > s3r1Sinks;
+  std::vector<Ptr<PacketSink> > s4r1Sinks;
   s1r1Sinks.reserve (10);
   s3r1Sinks.reserve (10);
-  for (std::size_t i = 0; i < 20; i++) {
+  s4r1Sinks.reserve (50);
+  for (std::size_t i = 0; i < 70; i++) {
     uint16_t port = 50000 + i;
     Address sinkLocalAddress (InetSocketAddress (Ipv4Address::GetAny (), port));
     PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", sinkLocalAddress);
@@ -561,8 +577,10 @@ int main (int argc, char *argv[]) {
     if (i < 10) {
       s1r1Sinks.push_back (packetSink);
     }
-    else {
+    else if (i < 20){
       s3r1Sinks.push_back (packetSink);
+    } else {
+      s4r1Sinks.push_back (packetSink);
     }
     sinkApp.Start (startTime);
     sinkApp.Stop (stopTime);
@@ -580,33 +598,36 @@ int main (int argc, char *argv[]) {
       clientApps1.Add (clientHelper1.Install (S1.Get (i)));
       clientApps1.Start (i * flowStartupWindow / 10 + clientStartTime + MilliSeconds (i * 5));
     }
-    else {
+    else if (i < 20) {
       clientApps1.Add (clientHelper1.Install (S3.Get (i - 10)));
       clientApps1.Start ((i - 10) * flowStartupWindow / 10 + clientStartTime + MilliSeconds (i * 5));
+    } else {
+      clientApps1.Add (clientHelper1.Install (S4.Get (i - 20)));
+      clientApps1.Start ((i - 20) * flowStartupWindow / 50 + clientStartTime + MilliSeconds (i * 5));
     }
 
     clientApps1.Stop (stopTime);
   }
 
-  txS1R1RttS.open ("./scratch/Swift/Swift-S1R1-rtt.dat", std::ios::out);
+  txS1R1RttS.open ("./scratch/SwiftLoad/SwiftLoad-S1R1-rtt.dat", std::ios::out);
   txS1R1RttS << "Time(s) RTT(ms)" << std::endl;
   
-  txS2R2RttS.open ("./scratch/Swift/Swift-S2R2-rtt.dat", std::ios::out);
+  txS2R2RttS.open ("./scratch/SwiftLoad/SwiftLoad-S2R2-rtt.dat", std::ios::out);
   txS2R2RttS << "Time(s) RTT(ms)" << std::endl;
   
-  txS3R1RttS.open ("./scratch/Swift/Swift-S3R1-rtt.dat", std::ios::out);
+  txS3R1RttS.open ("./scratch/SwiftLoad/SwiftLoad-S3R1-rtt.dat", std::ios::out);
   txS3R1RttS << "Time(s) RTT(ms)" << std::endl;
 
-  rxS1R1Throughput.open ("./scratch/Swift/Swift-S1R1-throughput.dat", std::ios::out);
+  rxS1R1Throughput.open ("./scratch/SwiftLoad/SwiftLoad-S1R1-throughput.dat", std::ios::out);
   rxS1R1Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
-  rxS2R2Throughput.open ("./scratch/Swift/Swift-S2R2-throughput.dat", std::ios::out);
+  rxS2R2Throughput.open ("./scratch/SwiftLoad/SwiftLoad-S2R2-throughput.dat", std::ios::out);
   rxS2R2Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
-  rxS3R1Throughput.open ("./scratch/Swift/Swift-S3R1-throughput.dat", std::ios::out);
+  rxS3R1Throughput.open ("./scratch/SwiftLoad/SwiftLoad-S3R1-throughput.dat", std::ios::out);
   rxS3R1Throughput << "#Time(s) flow thruput(Mb/s)" << std::endl;
-  fairnessIndex.open ("./scratch/Swift/Swift-fairness.dat", std::ios::out);
-  t1QueueLength.open ("./scratch/Swift/Swift-t1-length.dat", std::ios::out);
+  fairnessIndex.open ("./scratch/SwiftLoad/SwiftLoad-fairness.dat", std::ios::out);
+  t1QueueLength.open ("./scratch/SwiftLoad/SwiftLoad-t1-length.dat", std::ios::out);
   t1QueueLength << "#Time(s) qlen(pkts) qlen(us)" << std::endl;
-  t2QueueLength.open ("./scratch/Swift/Swift-t2-length.dat", std::ios::out);
+  t2QueueLength.open ("./scratch/SwiftLoad/SwiftLoad-t2-length.dat", std::ios::out);
   t2QueueLength << "#Time(s) qlen(pkts) qlen(us)" << std::endl;
   for (std::size_t i = 0; i < 10; i++) {
     s1r1Sinks[i]->TraceConnectWithoutContext ("Rx", MakeBoundCallback (&TraceS1R1Sink, i));
