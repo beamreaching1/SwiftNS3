@@ -175,7 +175,7 @@ void Swift::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
   }
   else {
     if(m_canDecrease) {
-      tcb->m_cWnd = std::max(1 - (m_beta * (tcb->m_lastRtt.Get().GetMilliSeconds() - m_targetDelay)),
+      tcb->m_cWnd = std::max(1 - (m_beta * ((tcb->m_lastRtt.Get().GetMilliSeconds() - m_targetDelay)/tcb->m_lastRtt.Get().GetMilliSeconds())),
       1 - m_maxDecrease) * tcb->m_cWnd;
     }
   }
