@@ -151,7 +151,7 @@ uint32_t Swift::GetSsThresh (Ptr<const TcpSocketState> tcb, uint32_t bytesInFlig
 
 void Swift::UpdateTargetDelay(Ptr<TcpSocketState> tcb) {
   m_targetDelay = m_baseDelay + (m_hops * m_hopScale);
-  m_targetDelay += std::max((double)0.0, std::min(1/sqrt((double)tcb->m_cWnd)+m_beta, (double)m_fSrange));
+  m_targetDelay += std::max((double)0.0, std::min(m_alpha/sqrt((double)tcb->m_cWnd)+m_beta, (double)m_fSrange));
 }
 
 void Swift::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
